@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wordsearch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=layouts4" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <h1>Word Search</h1>
+        <div class="hero-actions">
+          <button id="themeToggleButton" class="secondary-button" type="button" aria-pressed="false">Dark</button>
+          <p class="timer-label">Time <span id="timerText" class="timer-text">00:00</span></p>
+          <label id="layoutSwitcher" class="layout-switcher hidden" for="layoutSelect">
+            <span class="visually-hidden">Layout</span>
+            <select id="layoutSelect" aria-label="Layout"></select>
+          </label>
+          <button id="editSetupButton" class="secondary-button hidden" type="button">Setup</button>
+          <button id="restartButton" class="restart-button hidden" type="button">New round</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="setupScreen" class="setup-screen">
+          <section class="setup-controls card">
+            <label class="field compact" for="wordListSelect">
+              <span>Word list</span>
+              <select id="wordListSelect"></select>
+            </label>
+            <label class="field compact" for="wordCountSelect">
+              <span>Word count</span>
+              <select id="wordCountSelect"></select>
+            </label>
+            <label class="field compact" for="boardSizeSelect">
+              <span>Choose a size</span>
+              <select id="boardSizeSelect"></select>
+            </label>
+            <label class="field compact" for="setupLayoutSelect">
+              <span>Layout</span>
+              <select id="setupLayoutSelect"></select>
+            </label>
+          </section>
+
+          <section class="setup-panel">
+            <div>
+              <p class="label">Setup</p>
+              <h2>Build your next puzzle</h2>
+              <p class="setup-copy">
+                Enter up to 30 words, one per line, then choose a board size from the valid options.
+              </p>
+            </div>
+
+            <form id="setupForm" class="setup-form">
+              <label class="field" for="wordsInput">
+                <span>Your words</span>
+                <textarea id="wordsInput" rows="10" spellcheck="false"></textarea>
+              </label>
+
+              <div class="setup-summary card">
+                <p id="minimumSizeText" class="info-text">Minimum size: 0 x 0</p>
+                <p id="wordCountText" class="info-text">0 words ready</p>
+                <p id="sizeHintText" class="info-subtext">Add a few words to unlock size options.</p>
+              </div>
+
+              <p id="setupError" class="setup-error hidden" aria-live="polite"></p>
+              <button class="start-button" type="submit">Start game</button>
+            </form>
+          </section>
+        </section>
+
+        <section id="gameScreen" class="game-layout hidden" data-layout="classic">
+          <section id="wordsPanel" class="words-panel card">
+            <ul id="wordList" class="word-list"></ul>
+          </section>
+
+          <section class="board-panel">
+            <div class="board-topline">
+              <p id="puzzlePlate" class="puzzle-plate">Puzzle No. 1</p>
+              <div class="progress-block">
+                <p id="statusText" class="status-text">0 of 0 words found</p>
+                <div class="progress-track" role="presentation">
+                  <span id="progressFill" class="progress-fill"></span>
+                </div>
+              </div>
+              <p class="board-timer">Time <span id="boardTimerText" class="timer-text">00:00</span></p>
+            </div>
+
+            <div id="huntPanel" class="hunt-panel hidden">
+              <div class="hunt-target">
+                <p class="hunt-label">Find</p>
+                <p id="huntWord" class="hunt-word">—</p>
+              </div>
+              <div class="hunt-actions">
+                <button id="huntHintButton" class="hint-button" type="button">Hint</button>
+                <button id="huntSkipButton" class="secondary-button" type="button">Skip</button>
+              </div>
+              <div id="huntDots" class="hunt-dots" aria-hidden="true"></div>
+            </div>
+
+            <div class="board-wrap">
+              <div id="board" class="board" aria-label="Wordsearch puzzle board" role="grid"></div>
+              <svg id="boardOverlay" class="board-overlay" aria-hidden="true"></svg>
+
+              <div id="winSplash" class="win-splash hidden" role="dialog" aria-modal="true" aria-labelledby="winHeading">
+                <svg class="win-face" viewBox="0 0 120 120" role="img" aria-label="Smiling face">
+                  <circle class="win-face-disc" cx="60" cy="60" r="52" />
+                  <circle class="win-face-eye" cx="43" cy="48" r="6.5" />
+                  <circle class="win-face-eye" cx="77" cy="48" r="6.5" />
+                  <path class="win-face-smile" d="M36 71c6.5 11 14.5 16.5 24 16.5S77.5 82 84 71" />
+                </svg>
+                <p class="win-label">Complete</p>
+                <h2 id="winHeading">Puzzle solved</h2>
+                <p class="win-copy">
+                  Every word found in <span id="winTime" class="win-time">00:00</span>.
+                </p>
+                <div class="win-actions">
+                  <button id="winNewRoundButton" class="restart-button" type="button">Start new game</button>
+                  <button id="winSetupButton" class="secondary-button" type="button">Change setup</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside id="sidePanel" class="side-panel card">
+            <div class="side-card">
+              <h3 class="side-heading">Found</h3>
+              <p class="side-stat"><span id="sideFoundCount">0</span><span class="side-stat-total">/ 0</span></p>
+              <div class="progress-track" role="presentation">
+                <span id="sideProgressFill" class="progress-fill"></span>
+              </div>
+            </div>
+            <div class="side-card">
+              <h3 class="side-heading">Remaining</h3>
+              <ul id="remainingList" class="side-list"></ul>
+            </div>
+            <div class="side-card">
+              <h3 class="side-heading">Solved</h3>
+              <ul id="solvedList" class="side-list side-list--solved"></ul>
+            </div>
+          </aside>
+
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js?v=layouts4"></script>
+  </body>
+</html>
