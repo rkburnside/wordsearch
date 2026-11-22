@@ -240,7 +240,7 @@ const LAYOUTS = [
   {
     id: "classic-rail",
     name: "Classic rail",
-    description: "Compact word list above the board."
+    description: "Words arranged in a divided rail that wraps to fit."
   },
   {
     id: "board-first",
@@ -255,7 +255,7 @@ const LAYOUTS = [
   {
     id: "hunt",
     name: "Hunt mode",
-    description: "Highlights one target at a time, with a limited hint budget."
+    description: "One target at a time, with an optional word list and limited hints."
   },
   {
     id: "book",
@@ -266,6 +266,7 @@ const LAYOUTS = [
 const boardElement = document.getElementById("board");
 const boardOverlayElement = document.getElementById("boardOverlay");
 const wordListElement = document.getElementById("wordList");
+const wordsPanelElement = document.getElementById("wordsPanel");
 const statusTextElement = document.getElementById("statusText");
 const winSplashElement = document.getElementById("winSplash");
 const winTimeElement = document.getElementById("winTime");
@@ -299,10 +300,10 @@ const sideProgressFillElement = document.getElementById("sideProgressFill");
 const progressFillElement = document.getElementById("progressFill");
 const boardTimerTextElement = document.getElementById("boardTimerText");
 const puzzlePlateElement = document.getElementById("puzzlePlate");
-const huntPanelElement = document.getElementById("huntPanel");
 const huntWordElement = document.getElementById("huntWord");
 const huntHintButton = document.getElementById("huntHintButton");
 const huntSkipButton = document.getElementById("huntSkipButton");
+const huntListButton = document.getElementById("huntListButton");
 
 let gameState = null;
 let timerIntervalId = null;
@@ -440,6 +441,7 @@ function buildPuzzleState(config) {
     hintWord: null,
     hintIndex: 0,
     huntQueue: [...words],
+    huntListVisible: false,
     hintsLeft: HUNT_HINT_BUDGET,
     foundWords: new Set(),
     foundWordPaths: [],
@@ -727,6 +729,14 @@ function renderHuntPanel() {
   huntHintButton.textContent =
     gameState.hintsLeft > 0 ? `Hint · ${gameState.hintsLeft} left` : "No hints left";
   huntSkipButton.disabled = !target || gameState.huntQueue.length < 2;
+  renderHuntListVisibility();
+}
+
+function renderHuntListVisibility() {
+  const { huntListVisible } = gameState;
+  wordsPanelElement.classList.toggle("hidden", currentLayout === "hunt" && !huntListVisible);
+  huntListButton.setAttribute("aria-expanded", String(huntListVisible));
+  huntListButton.textContent = huntListVisible ? "Hide word list" : "Show word list";
 }
 
 function useHuntHint() {
@@ -1279,6 +1289,10 @@ layoutSelectElement.addEventListener("change", (event) => changeLayout(event.tar
 setupLayoutSelectElement.addEventListener("change", (event) => changeLayout(event.target.value));
 huntHintButton.addEventListener("click", useHuntHint);
 huntSkipButton.addEventListener("click", skipHuntWord);
+huntListButton.addEventListener("click", () => {
+  gameState.huntListVisible = !gameState.huntListVisible;
+  renderHuntListVisibility();
+});
 winNewRoundButton.addEventListener("click", restartCurrentGame);
 winSetupButton.addEventListener("click", returnToSetup);
 restartButton.addEventListener("click", restartCurrentGame);

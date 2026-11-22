@@ -50,7 +50,9 @@
 - The selected layout persists between sessions in local storage
 - Layouts are driven by a data-layout attribute on the game screen, with classic as the default
 - All layouts fit the board and word list in the viewport, with clearance below the bottom row
-- Hunt mode highlights one target at a time and limits hints to three per round
+- Classic Rail uses a divided word strip that wraps as needed
+- Split Desk shows Remaining and Solved beside the board, with the same sections below it on narrow screens
+- Hunt mode shows one target by default, offers a toggle for the full list, and limits hints to three per round
 
 ## Visual Direction
 
