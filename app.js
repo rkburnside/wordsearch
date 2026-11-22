@@ -235,17 +235,17 @@ const LAYOUTS = [
   {
     id: "classic",
     name: "Classic",
-    description: "Word list above the board, exactly as the game has always played."
+    description: "Word list above the board."
   },
   {
     id: "classic-rail",
     name: "Classic rail",
-    description: "Word list above the board as one row that scrolls sideways."
+    description: "Compact word list above the board."
   },
   {
     id: "board-first",
     name: "Board first",
-    description: "Board on top, words in a single scrolling rail underneath."
+    description: "Board on top, word list underneath."
   },
   {
     id: "split-desk",
@@ -255,7 +255,7 @@ const LAYOUTS = [
   {
     id: "hunt",
     name: "Hunt mode",
-    description: "One target word at a time, with a limited hint budget."
+    description: "Highlights one target at a time, with a limited hint budget."
   },
   {
     id: "book",
@@ -274,6 +274,7 @@ const winSetupButton = document.getElementById("winSetupButton");
 const restartButton = document.getElementById("restartButton");
 const editSetupButton = document.getElementById("editSetupButton");
 const themeToggleButton = document.getElementById("themeToggleButton");
+const fullscreenButton = document.getElementById("fullscreenButton");
 const timerTextElement = document.getElementById("timerText");
 const setupScreenElement = document.getElementById("setupScreen");
 const gameScreenElement = document.getElementById("gameScreen");
@@ -302,7 +303,6 @@ const huntPanelElement = document.getElementById("huntPanel");
 const huntWordElement = document.getElementById("huntWord");
 const huntHintButton = document.getElementById("huntHintButton");
 const huntSkipButton = document.getElementById("huntSkipButton");
-const huntDotsElement = document.getElementById("huntDots");
 
 let gameState = null;
 let timerIntervalId = null;
@@ -402,7 +402,6 @@ function applyLayout(layoutId) {
 
   if (gameState) {
     render();
-    window.requestAnimationFrame(renderFoundWordOverlay);
   }
 }
 
@@ -415,6 +414,18 @@ function toggleTheme() {
   const nextTheme = currentTheme === "dark" ? "light" : "dark";
   applyTheme(nextTheme);
   saveTheme(nextTheme);
+}
+
+async function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch {
+    // The game already fits the viewport if fullscreen is blocked.
+  }
 }
 
 function buildPuzzleState(config) {
@@ -443,12 +454,13 @@ function getCellKey(row, column) {
 }
 
 function startGame(config) {
+  const puzzle = buildPuzzleState(config);
   currentConfig = {
     words: [...config.words],
     size: config.size,
     source: config.source === "pool" ? "pool" : "custom"
   };
-  gameState = buildPuzzleState(currentConfig);
+  gameState = puzzle;
   roundNumber += 1;
   winSplashElement.classList.add("hidden");
   resetTimer();
@@ -467,29 +479,46 @@ function generateGrid(words, size) {
     { row: -1, column: -1 },
     { row: -1, column: 1 }
   ];
-  const diagonalDirections = directions.filter(
-    (direction) => Math.abs(direction.row) === 1 && Math.abs(direction.column) === 1
-  );
+  const diagonalDirections = directions.filter(({ row, column }) => row !== 0 && column !== 0);
+  const straightDirections = directions.filter(({ row, column }) => row === 0 || column === 0);
+  const orientedWords = words.filter((word) => word.length > 1);
+  const maxDiagonalWords = Math.floor(orientedWords.length / 2);
+  const minDiagonalWords = Math.min(maxDiagonalWords, Math.ceil(orientedWords.length / 4));
   const maxAttempts = 600;
-  const diagonalWordTarget = Math.ceil(words.length / 2);
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const grid = Array.from({ length: size }, () => Array(size).fill(""));
     const placements = {};
     let allPlaced = true;
-    const shuffledWords = shuffle([...words]);
-    const diagonalWords = new Set(shuffledWords.slice(0, diagonalWordTarget));
+    const diagonalCount =
+      minDiagonalWords + Math.floor(Math.random() * (maxDiagonalWords - minDiagonalWords + 1));
+    const diagonalCandidates = shuffle([...orientedWords]);
+    if (attempt >= 24 && attempt % 2 === 0) {
+      // Shorter diagonals leave more room for long words on tight boards.
+      diagonalCandidates.sort((left, right) => left.length - right.length);
+    }
+    const diagonalWords = new Set(diagonalCandidates.slice(0, diagonalCount));
+    const placementOrder = shuffle([...words]).sort((left, right) => right.length - left.length);
 
-    for (const word of shuffledWords) {
+    for (const word of placementOrder) {
       const candidates = [];
-      const allowedDirections = diagonalWords.has(word) ? diagonalDirections : directions;
+      const allowedDirections = diagonalWords.has(word) ? diagonalDirections : straightDirections;
+      let bestOverlap = 0;
 
       for (let row = 0; row < size; row += 1) {
         for (let column = 0; column < size; column += 1) {
           for (const direction of allowedDirections) {
-            if (canPlaceWord(grid, word, row, column, direction)) {
-              candidates.push({ row, column, direction });
+            const overlap = getPlacementOverlap(grid, word, row, column, direction);
+            if (overlap < bestOverlap) {
+              continue;
             }
+
+            // Favor shared letters on tight boards and keep some attempts fully random.
+            if (overlap > bestOverlap && attempt % 3 !== 0) {
+              bestOverlap = overlap;
+              candidates.length = 0;
+            }
+            candidates.push({ row, column, direction });
           }
         }
       }
@@ -517,22 +546,30 @@ function generateGrid(words, size) {
   throw new Error("Unable to generate a valid puzzle grid.");
 }
 
-function canPlaceWord(grid, word, startRow, startColumn, direction) {
+function getPlacementOverlap(grid, word, startRow, startColumn, direction) {
+  let overlap = 0;
+
   for (let index = 0; index < word.length; index += 1) {
     const row = startRow + direction.row * index;
     const column = startColumn + direction.column * index;
 
     if (row < 0 || row >= grid.length || column < 0 || column >= grid.length) {
-      return false;
+      return -1;
     }
 
     const currentValue = grid[row][column];
-    if (currentValue !== "" && currentValue !== word[index]) {
-      return false;
+    if (currentValue === "") {
+      continue;
     }
+
+    if (currentValue !== word[index]) {
+      return -1;
+    }
+
+    overlap += 1;
   }
 
-  return true;
+  return overlap;
 }
 
 function placeWord(grid, word, startRow, startColumn, direction) {
@@ -567,7 +604,8 @@ function shuffle(items) {
 function getStarterWords() {
   const requestedCount = Number(wordCountSelectElement?.value || STARTER_WORD_COUNT);
   const selectedListName = wordListSelectElement?.value || "Random";
-  const sourceWords = (WORD_POOLS[selectedListName] || DEFAULT_WORDS).filter((word) => word.length <= MAX_BOARD_SIZE);
+  const pool = WORD_POOLS[selectedListName] || DEFAULT_WORDS;
+  const sourceWords = [...new Set(pool)].filter((word) => word.length <= MAX_BOARD_SIZE);
 
   for (let count = Math.min(requestedCount, sourceWords.length); count >= 2; count -= 1) {
     for (let attempt = 0; attempt < 300; attempt += 1) {
@@ -627,11 +665,11 @@ function applyStarterWords() {
 
 function render() {
   renderBoard();
-  renderFoundWordOverlay();
   renderWordList();
   renderSidePanel();
   renderHuntPanel();
   updateStatus();
+  renderFoundWordOverlay();
 }
 
 function getHuntTarget() {
@@ -689,13 +727,6 @@ function renderHuntPanel() {
   huntHintButton.textContent =
     gameState.hintsLeft > 0 ? `Hint · ${gameState.hintsLeft} left` : "No hints left";
   huntSkipButton.disabled = !target || gameState.huntQueue.length < 2;
-
-  huntDotsElement.innerHTML = "";
-  gameState.words.forEach((word) => {
-    const dot = document.createElement("span");
-    dot.className = gameState.foundWords.has(word) ? "hunt-dot found" : "hunt-dot";
-    huntDotsElement.appendChild(dot);
-  });
 }
 
 function useHuntHint() {
@@ -724,7 +755,7 @@ function skipHuntWord() {
 
 function renderBoard() {
   boardElement.innerHTML = "";
-  boardElement.style.gridTemplateColumns = `repeat(${gameState.size}, minmax(0, 1fr))`;
+  boardElement.style.setProperty("--board-size", gameState.size);
 
   for (let row = 0; row < gameState.grid.length; row += 1) {
     for (let column = 0; column < gameState.grid[row].length; column += 1) {
@@ -842,23 +873,25 @@ function renderWordList() {
 
   gameState.words.forEach((word) => {
     const item = document.createElement("li");
-    const button = document.createElement("button");
+    const chip = document.createElement(currentLayout === "hunt" ? "span" : "button");
     const isFound = gameState.foundWords.has(word);
 
     item.className = isFound ? "found" : "pending";
 
-    button.type = "button";
-    button.className = "word-chip";
-    button.textContent = word;
-    button.disabled = isFound;
+    chip.className = "word-chip";
+    chip.textContent = word;
 
-    if (!isFound) {
-      button.title = "Show a hint";
-      button.setAttribute("aria-label", `${word}: show a hint`);
-      button.addEventListener("click", () => showHint(word));
+    if (chip instanceof HTMLButtonElement) {
+      chip.type = "button";
+      chip.disabled = isFound;
+      if (!isFound) {
+        chip.title = "Show a hint";
+        chip.setAttribute("aria-label", `${word}: show a hint`);
+        chip.addEventListener("click", () => showHint(word));
+      }
     }
 
-    item.appendChild(button);
+    item.appendChild(chip);
     wordListElement.appendChild(item);
   });
 }
@@ -1053,22 +1086,28 @@ function updateTimerDisplay() {
 
 function renderScreen(screen) {
   const isGame = screen === "game";
+  document.documentElement.dataset.screen = screen;
   setupScreenElement.classList.toggle("hidden", isGame);
   gameScreenElement.classList.toggle("hidden", !isGame);
   restartButton.classList.toggle("hidden", !isGame);
   editSetupButton.classList.toggle("hidden", !isGame);
   layoutSwitcherElement.classList.toggle("hidden", !isGame);
+  fullscreenButton.classList.toggle("hidden", !isGame || !document.fullscreenEnabled);
 
   if (!isGame) {
     winSplashElement.classList.add("hidden");
+    if (document.fullscreenElement) {
+      toggleFullscreen();
+    }
   }
 }
 
 function normalizeWords(rawValue) {
-  return rawValue
+  const words = rawValue
     .split(/\r?\n/)
     .map((word) => word.trim().toUpperCase().replace(/[^A-Z]/g, ""))
     .filter(Boolean);
+  return [...new Set(words)];
 }
 
 function calculateMinimumBoardSize(words) {
@@ -1245,6 +1284,10 @@ winSetupButton.addEventListener("click", returnToSetup);
 restartButton.addEventListener("click", restartCurrentGame);
 editSetupButton.addEventListener("click", returnToSetup);
 themeToggleButton.addEventListener("click", toggleTheme);
+fullscreenButton.addEventListener("click", toggleFullscreen);
+document.addEventListener("fullscreenchange", () => {
+  fullscreenButton.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
+});
 setupFormElement.addEventListener("submit", handleSetupSubmit);
 wordsInputElement.addEventListener("input", () => {
   if (isApplyingStarterWords) {
@@ -1275,8 +1318,8 @@ function initializeApp() {
 
 initializeApp();
 
-window.addEventListener("resize", () => {
+new ResizeObserver(() => {
   if (gameState) {
     renderFoundWordOverlay();
   }
-});
+}).observe(boardElement);

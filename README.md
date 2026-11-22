@@ -12,6 +12,11 @@ selection as you drag, and stays on the board once a word is found.
 Tap a word in the list for a hint: one of its letters lights up on the
 board, and tapping the same word again steps through the rest.
 
+The board and full word list fit on one screen during play. Use
+**Full screen** in the header for more room when your browser supports it.
+Between 25% and 50% of multi-letter words are placed diagonally when the
+puzzle has at least two of them.
+
 Finishing a puzzle covers the board with a splash showing your time,
 with buttons to start a new round or change the setup.
 

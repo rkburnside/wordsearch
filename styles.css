@@ -195,13 +195,52 @@ select {
 
 .game-layout {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
 }
 
 .game-layout > * {
   min-width: 0;
+}
+
+:root[data-screen="game"],
+:root[data-screen="game"] body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+:root[data-screen="game"] body {
+  min-height: 0;
+}
+
+[data-screen="game"] .app-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100vh;
+  height: 100dvh;
+  padding: 8px 0 max(20px, env(safe-area-inset-bottom));
+}
+
+[data-screen="game"] main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+[data-screen="game"] .hero {
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+[data-screen="game"] .hero-actions {
+  flex-wrap: wrap;
 }
 
 .setup-screen {
@@ -333,7 +372,10 @@ select {
 }
 
 .board-panel {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px;
 }
 
 .board-topline {
@@ -357,18 +399,27 @@ select {
 
 .board {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--board-size), minmax(0, 1fr));
+  --cell-size: calc(100cqw / var(--board-size));
+  gap: clamp(1px, calc(var(--cell-size) * 0.14), 8px);
   user-select: none;
   touch-action: none;
   width: 100%;
-  max-width: min(100%, 76vh);
-  margin: 0 auto;
+  height: 100%;
+}
+
+.board-space {
+  flex: 1;
+  min-height: 0;
+  container-type: size;
 }
 
 .board-wrap {
   position: relative;
-  width: fit-content;
-  max-width: 100%;
+  container-type: inline-size;
+  width: min(100cqw, 100cqh);
+  aspect-ratio: 1;
   margin: 0 auto;
 }
 
@@ -383,12 +434,15 @@ select {
 
 .cell {
   aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
   border: 0;
-  border-radius: 18px;
+  border-radius: min(18px, calc(var(--cell-size) * 0.3));
   background: var(--surface);
   color: var(--ink);
   font-weight: 700;
-  font-size: clamp(1.8rem, 3vw, 2.3rem);
+  font-size: min(2.3rem, calc(var(--cell-size) * 0.61));
+  line-height: 1;
   cursor: pointer;
   transition:
     transform 120ms ease,
@@ -431,18 +485,18 @@ select {
   box-shadow: none;
 }
 
-.words-panel {
-  padding: 7px 10px;
-}
-
 .card {
   padding: 14px;
+}
+
+.words-panel {
+  padding: 6px 8px;
 }
 
 .word-list {
   list-style: none;
   padding: 0;
-  margin: 6px 0 0;
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 5px 6px;
@@ -467,8 +521,11 @@ select {
   color: inherit;
   font: inherit;
   letter-spacing: inherit;
-  cursor: pointer;
   touch-action: manipulation;
+}
+
+.word-list button.word-chip {
+  cursor: pointer;
 }
 
 .word-list .word-chip:disabled {
@@ -527,18 +584,12 @@ select {
 
   .hero,
   .setup-panel,
-  .board-panel,
-  .card {
+  .setup-screen .card {
     padding: 10px;
   }
 
-  .game-layout,
   .setup-screen {
     margin-top: 10px;
-  }
-
-  .game-layout {
-    gap: 10px;
   }
 
   .hero {
@@ -568,44 +619,40 @@ select {
     min-height: 180px;
   }
 
-  .board-panel {
-    padding: 10px 8px 12px;
-  }
-
   .board-topline {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .board {
-    gap: 5px;
-    width: min(100%, calc(100vw - 24px));
-    max-width: none;
-  }
-
-  .cell {
-    border-radius: 10px;
-    font-size: clamp(1.23rem, 4.9vw, 1.62rem);
-    min-width: 0;
-  }
-
-  .board-wrap {
-    width: 100%;
+    gap: 8px;
   }
 
   .word-list {
     gap: 4px 5px;
-    margin-top: 6px;
   }
 
   .word-list li {
-    padding: 3px 6px;
     font-size: 0.72rem;
+  }
+
+  .word-list .word-chip {
+    padding-inline: 5px;
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 420px), (max-width: 610px) and (max-height: 480px) {
+  [data-screen="game"] .app-shell {
+    width: calc(100% - 8px);
+  }
+
+  [data-screen="game"] .hero {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 4px;
+    padding-inline: 6px;
+  }
+
+  [data-screen="game"] .hero-actions {
+    display: contents;
+  }
+
   .hero h1 {
     font-size: 1rem;
   }
@@ -624,6 +671,19 @@ select {
   .word-list {
     gap: 5px;
   }
+
+  .board-topline {
+    margin-bottom: 5px;
+  }
+
+  .board-topline .progress-block {
+    gap: 4px;
+  }
+
+  .status-text {
+    font-size: 0.85rem;
+    line-height: 1.1;
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -638,8 +698,8 @@ select {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 18px;
+  gap: min(6px, 2cqw);
+  padding: min(18px, 4cqw);
   border-radius: 24px;
   text-align: center;
   background: var(--celebration-bg);
@@ -660,8 +720,9 @@ select {
 }
 
 .win-face {
-  width: clamp(88px, 22vw, 128px);
-  height: auto;
+  width: min(128px, 28cqw);
+  flex-shrink: 1;
+  min-height: 0;
   margin-bottom: 2px;
   animation: win-face-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -707,7 +768,7 @@ select {
 .win-splash h2 {
   margin: 0;
   font-family: "Sora", sans-serif;
-  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  font-size: min(2.4rem, 10cqw);
   line-height: 1.05;
 }
 
@@ -727,8 +788,8 @@ select {
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin-top: 12px;
-  padding: 12px;
+  margin-top: min(12px, 2cqw);
+  padding: min(12px, 2cqw);
   border-radius: 18px;
   background: var(--surface-strong);
   border: 1px solid var(--line);
@@ -780,8 +841,6 @@ select {
 
 /* ---------------------------------------------------------------
    Layouts
-   The game screen carries data-layout; every rule below is scoped
-   to it so the classic arrangement stays the untouched default.
    --------------------------------------------------------------- */
 
 .visually-hidden {
@@ -857,13 +916,14 @@ select {
 
 .side-panel {
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   align-self: start;
+  padding: 8px;
 }
 
 .side-card + .side-card {
   border-top: 1px solid var(--line);
-  padding-top: 10px;
+  padding-top: 6px;
 }
 
 .side-heading {
@@ -894,22 +954,22 @@ select {
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: 2px 6px;
 }
 
 .side-word {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   width: 100%;
-  padding: 4px 8px;
+  padding: 3px 4px;
   border: 0;
   border-radius: 8px;
   background: none;
   color: var(--ink);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   letter-spacing: 0.02em;
   cursor: pointer;
   text-align: left;
@@ -927,8 +987,8 @@ select {
 }
 
 .side-list--solved li {
-  padding: 4px 8px;
-  font-size: 0.82rem;
+  padding: 3px 4px;
+  font-size: 0.76rem;
   color: var(--found);
   text-decoration: line-through;
   text-decoration-thickness: 2px;
@@ -942,10 +1002,10 @@ select {
 
 .hunt-panel {
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex-wrap: wrap;
-  padding: 10px 14px;
-  margin-bottom: 10px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
   border-radius: 18px;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -962,7 +1022,7 @@ select {
 .hunt-word {
   margin: 0;
   font-family: "Sora", sans-serif;
-  font-size: clamp(1.3rem, 5vw, 1.9rem);
+  font-size: clamp(1rem, 4.5vw, 1.7rem);
   line-height: 1.1;
   letter-spacing: 0.04em;
 }
@@ -989,65 +1049,22 @@ select {
   cursor: default;
 }
 
-.hunt-dots {
-  display: flex;
-  gap: 4px;
-  flex-basis: 100%;
+/* --- Classic rail: compact spacing above the board --- */
+
+.game-layout[data-layout="classic-rail"] .word-chip {
+  padding-inline: 5px;
 }
 
-.hunt-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--line);
-  box-shadow: inset 0 0 0 1px var(--line);
+/* --- Board first: grid above the words --- */
+
+.game-layout[data-layout="board-first"],
+.game-layout[data-layout="split-desk"] {
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
-.hunt-dot.found {
-  background: var(--accent);
-}
-
-/* --- Classic rail: classic order, words on one sideways-scrolling row --- */
-
-.game-layout[data-layout="classic-rail"] .words-panel {
-  padding: 8px 10px;
-}
-
-.game-layout[data-layout="classic-rail"] .word-list,
-.game-layout[data-layout="board-first"] .word-list,
-.game-layout[data-layout="book"] .word-list {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  scroll-snap-type: x proximity;
-  padding-bottom: 2px;
-}
-
-.game-layout[data-layout="classic-rail"] .word-list::-webkit-scrollbar,
-.game-layout[data-layout="board-first"] .word-list::-webkit-scrollbar,
-.game-layout[data-layout="book"] .word-list::-webkit-scrollbar {
-  display: none;
-}
-
-.game-layout[data-layout="classic-rail"] .word-list li,
-.game-layout[data-layout="board-first"] .word-list li,
-.game-layout[data-layout="book"] .word-list li {
-  scroll-snap-align: start;
-}
-
-/* --- Board first: grid on top, words in a single scrolling rail --- */
-
-.game-layout[data-layout="board-first"] .board-panel {
+.game-layout[data-layout="board-first"] .words-panel,
+.game-layout[data-layout="split-desk"] .words-panel {
   order: 1;
-}
-
-.game-layout[data-layout="board-first"] .words-panel {
-  order: 2;
-  padding: 8px 10px;
-}
-
-.game-layout[data-layout="board-first"] .word-list {
-  margin-top: 0;
 }
 
 .game-layout[data-layout="board-first"] .board-timer {
@@ -1056,45 +1073,50 @@ select {
 
 /* --- Split desk: board beside a working sidebar --- */
 
-.game-layout[data-layout="split-desk"] .words-panel {
-  display: none;
-}
-
-.game-layout[data-layout="split-desk"] .side-panel {
-  display: flex;
-}
-
 .game-layout[data-layout="split-desk"] .board-timer {
   display: block;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 900px) and (min-height: 481px) {
   .game-layout[data-layout="split-desk"] {
-    grid-template-columns: minmax(0, 1fr) 260px;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 30%);
+    grid-template-rows: minmax(0, 1fr);
   }
 
-  .game-layout[data-layout="split-desk"] .celebration {
-    grid-column: 1 / -1;
+  .game-layout[data-layout="split-desk"] .words-panel {
+    display: none;
+  }
+
+  .game-layout[data-layout="split-desk"] .side-panel {
+    display: flex;
   }
 }
 
-/* --- Hunt mode: one target word at a time --- */
+@media (min-width: 540px) and (max-height: 480px) {
+  .game-layout[data-layout] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 46%);
+    grid-template-rows: minmax(0, 1fr);
+  }
 
-.game-layout[data-layout="hunt"] .words-panel {
-  display: none;
+  .game-layout .words-panel {
+    align-self: start;
+    order: 1;
+  }
 }
+
+/* --- Hunt mode: current target and limited hints --- */
 
 .game-layout[data-layout="hunt"] .hunt-panel {
   display: flex;
 }
 
-.game-layout[data-layout="hunt"] .status-text {
+.game-layout[data-layout="hunt"] .board-topline {
   display: none;
 }
 
-.game-layout[data-layout="hunt"] .board-timer {
-  display: block;
+.game-layout[data-layout="hunt"] .word-list li.pending:hover {
+  border-color: var(--line);
+  transform: none;
 }
 
 /* --- Puzzle book: printed-page styling over the classic arrangement --- */
@@ -1110,6 +1132,9 @@ select {
 
 .game-layout[data-layout="book"] .puzzle-plate {
   display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 0.95rem;
   letter-spacing: 0.02em;
@@ -1170,7 +1195,7 @@ select {
   border-right: 1px solid #d3c6a8;
   border-radius: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   letter-spacing: 0.04em;
 }
 
@@ -1179,7 +1204,7 @@ select {
 }
 
 .game-layout[data-layout="book"] .word-chip {
-  padding: 4px 12px;
+  padding: 4px 8px;
 }
 
 .game-layout[data-layout="book"] .word-list li.pending {
@@ -1200,13 +1225,43 @@ select {
     padding: 5px 24px 5px 10px;
     font-size: 0.78rem;
   }
+}
 
-  .hunt-actions {
-    margin-left: 0;
-    width: 100%;
+@media (max-width: 780px) and (max-height: 480px) {
+  .word-list {
+    gap: 3px;
   }
 
-  .hunt-actions button {
-    flex: 1;
+  .word-list li {
+    font-size: 0.72rem;
+  }
+
+  .word-list .word-chip {
+    padding: 2px 4px;
+  }
+
+  .hunt-label {
+    display: none;
+  }
+
+  .hunt-word {
+    font-size: 0.9rem;
+  }
+
+  .hunt-actions {
+    gap: 4px;
+  }
+
+  .hint-button {
+    padding: 4px 6px;
+    font-size: 0.72rem;
+  }
+
+  .game-layout[data-layout="book"] .word-list li {
+    font-size: 0.72rem;
+  }
+
+  .game-layout[data-layout="book"] .word-chip {
+    padding: 2px 5px;
   }
 }

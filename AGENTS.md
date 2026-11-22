@@ -48,9 +48,9 @@
 - The game screen offers six selectable layouts: classic, classic rail, board first, split desk, hunt mode, puzzle book
 - A layout picker sits on the setup screen and in the header, so layouts can be switched mid-round
 - The selected layout persists between sessions in local storage
-- Layouts are driven by a data-layout attribute on the game screen; classic is the untouched default
-- Classic rail, board first, and puzzle book show the word list as one sideways-scrolling row
-- Hunt mode shows one target word at a time and limits hints to three per round
+- Layouts are driven by a data-layout attribute on the game screen, with classic as the default
+- All layouts fit the board and word list in the viewport, with clearance below the bottom row
+- Hunt mode highlights one target at a time and limits hints to three per round
 
 ## Visual Direction
 
