@@ -432,7 +432,7 @@ function buildPuzzleState(config) {
   const words = config.words.map((word) => word.toUpperCase());
   const { grid, placements } = generateGrid(words, config.size);
   return {
-    words,
+    words: [...words].sort(),
     size: config.size,
     grid,
     placements,
